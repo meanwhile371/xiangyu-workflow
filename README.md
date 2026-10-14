@@ -102,7 +102,7 @@ xiangyu-workflow/
 │   ├── paper-writing.md          # ✅ 完整6步，已嵌入所有逻辑
 │   ├── literature-review.md      # ✅ 完整5步，已嵌入所有逻辑
 │   ├── paper-from-assets.md      # ✅ 完整5步，已嵌入所有逻辑
-│   ├── review-rebuttal.md        # 简化版
+│   ├── review-rebuttal.md        # ✅ 完整的
 │   ├── modeling-comp.md          # ✅ 完整的
 │   ├── thesis-proposal.md        # ✅ 完整的
 │   ├── course-paper.md           # ✅ 完整的
