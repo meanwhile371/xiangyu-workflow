@@ -11,15 +11,14 @@ description: "Use when the user wants to start, resume, or dispatch any paper or
 
 工作流本身不重复实现已有能力,而是把现有技能编排成一条有依赖、有闸门、有记忆的流水线。
 
-来源说明:骨架取自 Modex-MH-Agent(明珩科技)反编译得到的编排机制,已核对过的部分在本文档标注 `[Modex]`。具体阈值、文件布局、目录名是本地设计,标注 `[本地]`。
 
 ## 1. 三条核心原则
 
 **原则一:进度外置。** 不靠对话记忆记进度。进度写在磁盘上,换会话、换天、换窗口都能读回来。
 
-**原则二:产物按事实判定。** 一步是否完成,只看文件是否真的出现或变更,不看任何自评。模型说「已完成」不构成证据。`[Modex]`
+**原则二:产物按事实判定。** 一步是否完成,只看文件是否真的出现或变更,不看任何自评。模型说「已完成」不构成证据。
 
-**原则三:确定性校验只读。** 「现在到哪了」这类查询永不写盘、永不调用模型、永不重启流程。查询和推进是两件事。`[Modex]`
+**原则三:确定性校验只读。** 「现在到哪了」这类查询永不写盘、永不调用模型、永不重启流程。查询和推进是两件事。
 
 ## 2. 工作流总表
 
@@ -41,7 +40,7 @@ description: "Use when the user wants to start, resume, or dispatch any paper or
 
 ## 3. 状态文件
 
-根目录 `.xy/`,与 Modex 的 `.mh/` 同构。隐藏目录的名字可以换,但必须是一个点开头的目录 —— 交付审计会扫描非隐藏文件,状态文件放在明处会被误算成交付产物。`[Modex]`
+根目录 `.xy/`。隐藏目录的名字可以换,但必须是一个点开头的目录 —— 交付审计会扫描非隐藏文件,状态文件放在明处会被误算成交付产物。
 
 ```
 <项目根>/
@@ -53,7 +52,7 @@ description: "Use when the user wants to start, resume, or dispatch any paper or
   CLAUDE.md        AI 读:记忆段,被引擎每次重写
 ```
 
-三层分工不能混。把 JOURNAL 注入上下文会撑爆窗口;把 STATE 给人读会看不懂;把记忆段当台账会丢信息。`[Modex]`
+三层分工不能混。把 JOURNAL 注入上下文会撑爆窗口;把 STATE 给人读会看不懂;把记忆段当台账会丢信息。
 
 ## 4. 记忆段
 
@@ -68,7 +67,7 @@ description: "Use when the user wants to start, resume, or dispatch any paper or
 <!-- XY_MEMO:END -->
 ```
 
-三条硬规则 `[Modex]`:
+三条硬规则:
 
 1. **每次整体重写**,不是追加。追加会让块无限增长。
 2. **上限约 3000 字符**。超了就砍掉最旧的「已完成」条目,保留决定和过期警告。
@@ -89,7 +88,7 @@ description: "Use when the user wants to start, resume, or dispatch any paper or
 产出：MODELING_REPORT.md
 ```
 
-三种范围 `[Modex]`:
+三种范围:
 
 | 范围 | 何时用 |
 |------|--------|
@@ -103,7 +102,7 @@ description: "Use when the user wants to start, resume, or dispatch any paper or
 
 每个产物记录 `produced_by` 和 `inputs`(上游产物路径 + 内容哈希)。上游变更后,下游自动标 `stale`。
 
-判变更用内容哈希,不用修改时间。mtime 会被复制、解压、同步工具改写,内容不会。`[Modex]`
+判变更用内容哈希,不用修改时间。mtime 会被复制、解压、同步工具改写,内容不会。
 
 失效检查是传递的:改了 `MODELING_REPORT.md`,下游 `RESULTS.md` 若未重跑,则 `figures/` 全部失效。
 
@@ -116,15 +115,15 @@ description: "Use when the user wants to start, resume, or dispatch any paper or
 
 ## 7. 质量闸
 
-每步跑完,用可判定的检查验收。检查项分三类 `[Modex]`:
+每步跑完,用可判定的检查验收。检查项分三类:
 
 - `machine`:文件存在、字节下限、正则匹配、条目计数
 - `falsifiable_check`:可证伪的断言,如「图 3 的纵轴单位与正文一致」
 - `semantic`:只能人看的判断,标出来交给用户,不假装机器能验
 
-文件存在不等于内容正确。语义正确性不自动通过,验收是一次显式动作。`[Modex]`
+文件存在不等于内容正确。语义正确性不自动通过,验收是一次显式动作。
 
-闸门不通过时,不推翻已完成的产物,而是挂一张待处理卡。同一(工作流,步骤)只挂一张,重复失败不叠加。`[Modex]`
+闸门不通过时,不推翻已完成的产物,而是挂一张待处理卡。同一(工作流,步骤)只挂一张,重复失败不叠加。
 
 ## 8. 执行循环
 
