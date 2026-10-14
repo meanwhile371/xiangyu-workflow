@@ -103,11 +103,11 @@ xiangyu-workflow/
 │   ├── literature-review.md      # ✅ 完整5步，已嵌入所有逻辑
 │   ├── paper-from-assets.md      # ✅ 完整5步，已嵌入所有逻辑
 │   ├── review-rebuttal.md        # 简化版
-│   ├── modeling-comp.md          # 待重构
-│   ├── thesis-proposal.md        # 待重构
-│   ├── course-paper.md           # 待重构
-│   ├── data-figures.md           # 待重构
-│   └── full-pipeline.md          # 待重构
+│   ├── modeling-comp.md          # ✅ 完整的
+│   ├── thesis-proposal.md        # ✅ 完整的
+│   ├── course-paper.md           # ✅ 完整的
+│   ├── data-figures.md           # ✅ 完整的
+│   └── full-pipeline.md          # ✅ 完整的
 └── scripts/              # 辅助脚本
     └── check_state.py   # 只读校验，输出进度摘要
 ```
@@ -139,9 +139,6 @@ xiangyu-workflow/
 
 状态持久化在磁盘，进度不依赖对话记忆。
 
-## 来源说明
-
-骨架取自 Modex-MH-Agent(明珩科技)反编译得到的编排机制。
 
 ## 问题排查
 
