@@ -66,25 +66,175 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 - {kind: semantic, claim: 无图文交叉, verify_by: 人眼}
 ```
 
-### 步骤 4 — 排版自检
+### 步骤 4 — 排版自检与修复
 
 生成后立即自检。检测到图文交叉或比例失衡时,自动修复重出,不提交有问题的图。
 
-常见问题与修法:
+#### 4.1 自动检测清单
+
+每张图保存前,用代码检查以下项目:
+
+```python
+def check_tick_overlap(ax):
+    """检测 x 或 y 轴刻度标签是否重叠"""
+    fig = ax.get_figure()
+    fig.canvas.draw()
+    
+    for axis in [ax.xaxis, ax.yaxis]:
+        labels = [t.get_window_extent() for t in axis.get_ticklabels()]
+        for i in range(len(labels)-1):
+            if labels[i].overlaps(labels[i+1]):
+                return True, f"{axis.axis_name}轴刻度重叠"
+    return False, ""
+
+def check_legend_overlap(ax):
+    """检测图例是否与数据点/线重叠"""
+    legend = ax.get_legend()
+    if legend is None:
+        return False, ""
+    
+    legend_bbox = legend.get_window_extent()
+    
+    for line in ax.get_lines():
+        line_bbox = line.get_window_extent()
+        if legend_bbox.overlaps(line_bbox):
+            return True, "图例遮挡数据线"
+    
+    for collection in ax.collections:
+        for path in collection.get_paths():
+            path_bbox = path.get_extents()
+            if legend_bbox.overlaps(path_bbox):
+                return True, "图例遮挡散点"
+    
+    return False, ""
+
+def check_label_clipping(fig):
+    """检测轴标签或标题是否超出画布"""
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    bbox = fig.get_tightbbox(renderer)
+    fig_bbox = fig.bbox
+    
+    if bbox.xmin < 0 or bbox.ymin < 0 or bbox.xmax > fig_bbox.width or bbox.ymax > fig_bbox.height:
+        return True, "标签超出画布边界"
+    return False, ""
+
+def check_subplot_spacing(fig):
+    """检测多子图间距是否过小"""
+    if len(fig.axes) < 2:
+        return False, ""
+    
+    fig.canvas.draw()
+    bboxes = [ax.get_window_extent() for ax in fig.axes]
+    
+    for i in range(len(bboxes)):
+        for j in range(i+1, len(bboxes)):
+            dx = min(abs(bboxes[i].x1 - bboxes[j].x0), abs(bboxes[j].x1 - bboxes[i].x0))
+            dy = min(abs(bboxes[i].y1 - bboxes[j].y0), abs(bboxes[j].y1 - bboxes[i].y0))
+            
+            if dx < 20 or dy < 20:
+                return True, f"子图{i}与{j}间距过小"
+    return False, ""
+```
+
+#### 4.2 自动修复方案
 
 | 问题 | 修法 |
 |------|------|
-| 图例遮挡数据 | 图例移到图外,或调整 `bbox_to_anchor` |
-| 刻度标签重叠 | 旋转标签,或缩短标签,或改字号 |
-| 子图间距过小 | `plt.tight_layout()` 或 `constrained_layout` |
-| 中文字符变方框 | 设 `font.sans-serif` 为中文字体 |
-| 色条压住子图 | `pad` 调大,或改用共享色条 |
-| 保存后边缘被裁 | `bbox_inches='tight'` |
+| x轴刻度重叠 | `plt.xticks(rotation=45, ha='right')` 或减少刻度 |
+| y轴刻度重叠 | `ax.yaxis.set_major_locator(MaxNLocator(nbins=5))` |
+| 图例遮挡数据 | `ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')` |
+| 标签被裁切 | `plt.savefig(..., bbox_inches='tight', pad_inches=0.1)` |
+| 子图间距过小 | `plt.tight_layout(pad=1.5)` |
+| 中文变方框 | `plt.rcParams['font.sans-serif'] = ['SimHei']` |
+| 色条压住子图 | `plt.colorbar(..., pad=0.05, shrink=0.8)` |
 
-重叠或遮挡反复修不好时,转 `matplotlib-fix`。
+#### 4.3 修复循环
+
+```python
+def fix_and_save(fig, output_path, max_iterations=3):
+    """自动检测并修复图表问题,最多尝试3次"""
+    for iteration in range(max_iterations):
+        issues = []
+        
+        for ax in fig.axes:
+            overlap, msg = check_tick_overlap(ax)
+            if overlap:
+                issues.append(('tick_overlap', ax, msg))
+            
+            overlap, msg = check_legend_overlap(ax)
+            if overlap:
+                issues.append(('legend_overlap', ax, msg))
+        
+        clip, msg = check_label_clipping(fig)
+        if clip:
+            issues.append(('label_clip', None, msg))
+        
+        spacing, msg = check_subplot_spacing(fig)
+        if spacing:
+            issues.append(('subplot_spacing', None, msg))
+        
+        if not issues:
+            fig.savefig(output_path, dpi=300, bbox_inches='tight')
+            print(f"✓ 图表通过检查: {output_path}")
+            return True
+        
+        print(f"第 {iteration+1} 轮修复: {len(issues)} 个问题")
+        for issue_type, ax, msg in issues:
+            print(f"  - {msg}")
+            apply_fix(issue_type, ax, fig)
+        
+        fig.canvas.draw()
+    
+    print(f"⚠ 经 {max_iterations} 轮修复仍有问题,保存当前版本并标记")
+    fig.savefig(output_path.replace('.png', '_NEEDS_MANUAL_FIX.png'), dpi=300, bbox_inches='tight')
+    return False
+
+def apply_fix(issue_type, ax, fig):
+    """应用对应修复"""
+    if issue_type == 'tick_overlap':
+        if ax.xaxis.get_ticklabels():
+            plt.setp(ax.xaxis.get_ticklabels(), rotation=45, ha='right')
+        if ax.yaxis.get_ticklabels():
+            from matplotlib.ticker import MaxNLocator
+            ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
+    
+    elif issue_type == 'legend_overlap':
+        legend = ax.get_legend()
+        if legend:
+            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    elif issue_type == 'subplot_spacing':
+        fig.tight_layout(pad=1.5)
+```
+
+#### 4.4 使用示例
+
+```python
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.plot(x, y, label='数据')
+ax.set_xlabel('时间')
+ax.set_ylabel('数值')
+ax.legend()
+
+fix_and_save(fig, 'figures/result.png')
+```
+
+#### 4.5 人工验收清单
+
+机器检查通过后,人眼最终验收:
+
+- [ ] 图例、标签、标题无遮挡
+- [ ] 所有文字在目标版面宽度下可读
+- [ ] 色条范围合理
+- [ ] 多子图对齐整齐
+- [ ] 无不必要的空白边缘
 
 闸门:
 ```yaml
+- {kind: machine, check: glob_count, glob: figures/*_NEEDS_MANUAL_FIX.png, max: 0}
 - {kind: semantic, claim: 逐图看过后确认无交叉, verify_by: 人眼}
 ```
 

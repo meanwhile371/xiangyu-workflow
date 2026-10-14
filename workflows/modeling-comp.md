@@ -2,194 +2,88 @@
 
 ## 何时用
 
-数学建模竞赛,含国赛(全国大学生数学建模竞赛)、美赛(MCM/ICM)、研究生数学建模、各类校赛。用户说「写数模」「A题」「比赛」「美赛」「国赛」。
+数模竞赛论文,国赛、美赛、深圳杯、华为杯等。用户说「写数模」「比赛」「竞赛论文」。
 
-这是一条最长的流水线,九步。每一步的产出是下一步的硬输入。
+与一般论文的区别:赛题给定、时间有限(3–4 天)、评审重实效轻理论深度。
 
-## 步骤总表
+## 步骤
 
-```
-1 of 9  赛题解析        → PROBLEM_ANALYSIS.md + CAPABILITY_CHECKLIST.json
-2 of 9  数据与统计      → data/ + STATS_NOTES.md
-3 of 9  建模方案        → MODELING_REPORT.md
-4 of 9  代码实现        → code/ + RESULTS.md
-5 of 9  数据图表        → figures/q*.png
-6 of 9  架构图/流程图   → figures/架构图.png（drawio）
-7 of 9  论文撰写        → paper/main.md
-8 of 9  编译导出        → paper/main.pdf 或 .docx
-9 of 9  自审与改进      → REVIEW_REPORT.md + 改进稿
-```
-
-依赖链:
-
-```
-PROBLEM_ANALYSIS.md → MODELING_REPORT.md → RESULTS.md → figures/ → paper/main.md → main.pdf
-```
-
-`MODELING_REPORT.md` 变更必须重跑 `RESULTS.md`,否则图用的是旧模型假设。这是本工作流最常见的失效源。
+1 of 9  赛题分析 → PROBLEM_ANALYSIS.md
+2 of 9  文献速查 → literature_brief.json
+3 of 9  数据理解 → DATA_CHECK.md
+4 of 9  建模方案 → MODELING_REPORT.md
+5 of 9  求解实现 → code/ + RESULTS.md
+6 of 9  架构图 → figures/workflow.png
+7 of 9  初稿 → paper/main.md
+8 of 9  自审 → REVIEW_REPORT.md
+9 of 9  定稿 → paper/main_final.md + 附件包
 
 ## 各步骤
 
-### 步骤 1 — 赛题解析
+### 步骤 1 — 赛题分析
 
-产出 `PROBLEM_ANALYSIS.md` + `CAPABILITY_CHECKLIST.json`。
+产出 PROBLEM_ANALYSIS.md: 题目要求拆解、评分要点推测、必做项/选做项、时间分配建议。
 
-`PROBLEM_ANALYSIS.md` 结构:
+### 步骤 2 — 文献速查
 
-```markdown
-## 问题一
-### 问题重述
-### 关键变量与约束
-### 目标
-## 问题二
-...
-<!-- FIGURE_MANIFEST
-| 拟放章节 | 对应问题 | 图内容 | 数据来源 |
-|---------|---------|--------|---------|
-| 问题二求解 | 问题二 | 需求量趋势 | RESULTS.md |
--->
-```
+轻量版调研,只找核心方法。产出 literature_brief.json。
 
-`CAPABILITY_CHECKLIST.json` 逐条列:完成这道题需要什么能力、每项现在是否具备、缺的怎么补。
+嵌入检索策略(PubMed/arXiv/Scholar):
+- PubMed: 生物医学类,用 Biopython Entrez
+- arXiv: 数学/CS类,用 HTTP API
+- Scholar: 通用,需 scholarly 库
 
-闸门:
-```yaml
-- {kind: machine, check: required_files, files: [PROBLEM_ANALYSIS.md, CAPABILITY_CHECKLIST.json]}
-- {kind: machine, check: min_size, file: PROBLEM_ANALYSIS.md, bytes: 1000}
-- {kind: machine, check: regex, file: PROBLEM_ANALYSIS.md,
-   pattern: '^#{1,6}\s+(?:问题\s*[一二三四五六七八九十\d]+|第\s*\d+\s*问|[Qq]\s*\d+)', min_matches: 2}
-- {kind: machine, check: contains, file: PROBLEM_ANALYSIS.md, text: FIGURE_MANIFEST}
-- {kind: semantic, claim: 每个问题的目标函数和约束写清了, verify_by: 用户验收}
-```
+### 步骤 3 — 数据理解
 
-问题标题匹配要求能认出「问题一」「第 2 问」「Q3」「Problem 4」这几种写法。
+产出 DATA_CHECK.md。赛题数据常见问题与应对:
+- 单位不明 → 从附件推断,写进假设
+- 缺失值 → 插补并记录方法
+- 异常值 → 3σ 检测
+- 时间序列不等间隔 → 插值
 
-### 步骤 2 — 数据与统计
+### 步骤 4 — 建模方案
 
-产出 `data/`(清洗后数据)+ `STATS_NOTES.md`。
+产出 MODELING_REPORT.md。常见模型决策:
+- 优化 → LP/IP/NLP/GA
+- 预测 → ARIMA/XGBoost/LSTM
+- 评价 → AHP/熵权法/TOPSIS
+- 分类 → K-means/DBSCAN
+- 网络 → Dijkstra/最大流
+- 仿真 → 蒙特卡洛/排队论
 
-`STATS_NOTES.md` 每条统计量写明:来源文件、样本量 n、计算方法、异常值处理。
+### 步骤 5 — 求解实现
 
-闸门:
-```yaml
-- {kind: machine, check: dir_exists, dir: data}
-- {kind: machine, check: min_size, file: STATS_NOTES.md, bytes: 400}
-- {kind: falsifiable_check, claim: 每个统计量都能在 data/ 里复算出来}
-```
+产出 code/ + RESULTS.md + figures/。
 
-无原始数据时,不得生成数值。缺数据就写「缺 X,未做推断」。
-
-### 步骤 3 — 建模方案
-
-产出 `MODELING_REPORT.md`,每个问题一节:模型选择理由、数学表达、假设、求解思路、备选方案对比。
-
-闸门:
-```yaml
-- {kind: machine, check: min_size, file: MODELING_REPORT.md, bytes: 1500}
-- {kind: machine, check: regex, file: MODELING_REPORT.md, pattern: '^#{2,3}\s*问题', min_matches: 2}
-- {kind: machine, check: contains, file: MODELING_REPORT.md, text: 假设}
-- {kind: semantic, claim: 模型与问题的匹配关系说清了, verify_by: 用户验收}
-```
-
-### 步骤 4 — 代码实现
-
-产出 `code/` + `RESULTS.md`。`RESULTS.md` 里每个数值都要能追到某一支脚本加某一次运行。
-
-闸门:
-```yaml
-- {kind: machine, check: dir_exists, dir: code}
-- {kind: machine, check: required_files, files: [RESULTS.md]}
-- {kind: machine, check: min_size, file: RESULTS.md, bytes: 800}
-- {kind: machine, check: contains, file: RESULTS.md, text: '```'}
-- {kind: falsifiable_check, claim: 论文里要用的每个结论数都出现在 RESULTS.md}
-```
-
-编码:所有 Python 脚本开头加 UTF-8 包装,中文路径用 `os.path.join` + `r'...'`。
-
-```python
-import sys, io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-```
-
-### 步骤 5 — 数据图表
-
-产出 `figures/q1_*.png`、`figures/q2_*.png`,按问题编号前缀。
-
-图名按章节标题归类,不按文件名前缀猜归属 —— 文件名可以乱起,章节标题是作者给的,更可信。`[Modex]`
-
-闸门:
-```yaml
-- {kind: machine, check: glob_count, glob: figures/q*.png, min: 2}
-- {kind: machine, check: min_size, file: figures/q1_*.png, bytes: 2048}
-```
-
-静态检查(崩溃恢复时用):只看 `figures/` 是否达到该步应有的产出规模。
-动态检查(正常执行时用):看这一步前后文件增量的实际差异。`[Modex]`
-
-两种检查不能混用。用动态检查判断崩溃恢复会误判,用静态检查判断偷懒会漏判。
-
-图文交叉自检,发现重叠转 `matplotlib-fix`。
+图表生成后立即自检(刻度重叠、图例遮挡、标签裁切),自动修复最多3轮,检测代码同 data-figures.md 步骤4。
 
 ### 步骤 6 — 架构图/流程图
 
-产出 `figures/架构图.png` 或 `figures/流程图.png`(drawio 绘制)。
+产出 figures/workflow.png。用 graphviz 绘制建模流程、算法流程、网络拓扑。
 
-闸门:
-```yaml
-- {kind: machine, check: glob_count, glob: figures/*架构图*.png, min: 1}
-- {kind: semantic, claim: 图里的模块名与 code/ 实际结构一致, verify_by: 人眼}
-```
+### 步骤 7 — 初稿
 
-若论文确实不含架构图,在 `MODELING_REPORT.md` 里显式声明「本论文无架构图」,该步骤按 `skipped` 记录,不算失败。
+产出 paper/main.md。数模标准结构:摘要、问题重述、问题分析、模型假设、符号说明、模型建立与求解、模型评价、参考文献、附录。
 
-### 步骤 7 — 论文撰写
+### 步骤 8 — 自审
 
-产出 `paper/main.md`。按竞赛论文标准结构:摘要、问题重述、问题分析、模型假设、符号说明、模型建立与求解(逐问)、模型检验、灵敏度分析、模型评价与推广、参考文献、附录。
+产出 REVIEW_REPORT.md,红队六角色。数模特有检查项:
+- 问题均有明确回答
+- 图表有编号说明
+- 代码可运行且输出一致
+- 假设写全、符号无遗漏
 
-闸门:
-```yaml
-- {kind: machine, check: min_size, file: paper/main.md, bytes: 6000}
-- {kind: machine, check: contains, file: paper/main.md, text: 摘要}
-- {kind: machine, check: contains, file: paper/main.md, text: 符号说明}
-- {kind: machine, check: contains, file: paper/main.md, text: 参考文献}
-- {kind: falsifiable_check, claim: 正文引用的每个图号、表号、公式号都存在}
-```
+### 步骤 9 — 定稿
 
-页码字数预检:正文计到「附录」之前,图和公式按折算占用计入。中文稿与英文稿分别计数。这是一道保守的预检,只提示不阻断。
+产出 paper/main_final.md + submission/ 附件包(论文PDF、代码ZIP、承诺书)。
 
-### 步骤 8 — 编译导出
+用 pandoc 转 PDF:
+pandoc paper/main_final.md -o submission/论文.pdf --pdf-engine=xelatex -V CJKmainfont=SimSun
 
-中文稿走 LaTeX 出 PDF,或直接导 Word;英文稿同理。
+## 时间分配(美赛4天)
 
-产出 `paper/main.pdf` 或 `paper/main.docx`。
-
-闸门:
-```yaml
-- {kind: machine, check: glob_count, glob: 'paper/main.pdf', min: 1}
-- {kind: machine, check: min_size, file: paper/main.pdf, bytes: 50000}
-- {kind: falsifiable_check, claim: PDF 页数在赛题限制内}
-```
-
-编译失败时,先修 LaTeX 而不是改内容。中文 LaTeX 用 XeLaTeX + ctex。
-
-### 步骤 9 — 自审与改进
-
-产出 `REVIEW_REPORT.md`,再走一轮改进循环,最多 4 轮。
-
-每轮:按评审清单挑问题 → 逐条修改 → 重新编译 → 复查。
-
-闸门:
-```yaml
-- {kind: machine, check: required_files, files: [REVIEW_REPORT.md]}
-- {kind: semantic, claim: 评审意见逐条有处理记录, verify_by: 用户验收}
-```
-
-## 常见失效
-
-| 现象 | 原因 | 处理 |
-|------|------|------|
-| 图对不上正文 | 改了建模未重跑代码 | 重跑步骤 4–5 |
-| 符号前后不一致 | 符号说明未同步正文修改 | 改正文后重生成符号表 |
-| 摘要与结论不符 | 结论后改但摘要没改 | 摘要放最后写 |
-| 附录代码与 code/ 不符 | 手改了附录没改脚本 | 以 code/ 为准重贴 |
+Day 1 前半天: 步骤1-3 (12%)
+Day 1 后半天-Day 2: 步骤4-5 (40%)
+Day 3: 步骤6-7 (30%)
+Day 4 上午: 步骤8 (10%)
+Day 4 下午: 步骤9 (8%)
