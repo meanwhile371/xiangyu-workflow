@@ -2,24 +2,15 @@
 
 工作流调度台 — 常驻本机的学术写作流水线编排层
 
-## ⚠️ 重要提示
+## ✅ 自包含设计
 
-**本工作流依赖 13 个外部技能包才能正常运行。使用前必须先安装依赖！**
-
-👉 **[查看完整依赖列表和安装方法](DEPENDENCIES.md)**
-
-核心依赖包括：
-- `nature-writing` / `nature-polishing` - 论文写作与润色
-- `nature-academic-search` / `citation-check-skill` - 文献检索与验证
-- `academic-paper-reviewer` - 论文评审
-- `deep-research` / `brainstorming` - 研究与策划
-- `nature-figure` / `matplotlib-fix` - 图表制作与修复
+**本工作流无需安装任何外部技能包！** 所有核心逻辑已嵌入各工作流文件中。
 
 ## 简介
 
 一套工作流调度层，用户说「写数模」「写论文」「继续上次」，它负责选工作流、报进度、要确认、跑步骤、卡质量、落盘状态。
 
-工作流本身不重复实现已有能力，而是把现有技能编排成一条有依赖、有闸门、有记忆的流水线。
+工作流本身不重复实现已有能力，而是把核心操作编排成一条有依赖、有闸门、有记忆的流水线。
 
 ## 功能特性
 
@@ -50,13 +41,7 @@
 git clone https://github.com/meanwhile371/xiangyu-workflow.git ~/.claude/skills/xiangyu-workflow
 ```
 
-### 2. 安装依赖技能
-
-**必须完成此步骤！** 详见 [DEPENDENCIES.md](DEPENDENCIES.md)
-
-推荐通过 Claude Desktop 技能市场安装 Anthropic 官方技能包。
-
-### 3. 验证安装
+### 2. 验证安装
 
 重启 Claude Desktop 后，在对话中输入：
 
@@ -64,27 +49,65 @@ git clone https://github.com/meanwhile371/xiangyu-workflow.git ~/.claude/skills/
 使用 xiangyu-workflow 开始一个论文写作项目
 ```
 
-如果提示缺少某个技能，请返回第 2 步安装对应依赖。
+## 工作流内容
+
+### W1 — 论文写作 (自包含)
+
+6步完整流程，已嵌入：
+- 头脑风暴与深度调研逻辑
+- 多源文献检索与真实性验证（绝对禁止编造）
+- Nature CCC 写作规范（Context → Content → Conclusion）
+- 期刊级图表制作（matplotlib/seaborn规范）
+- 六角色红队审查（矛盾查找、审稿人视角、破坏测试等）
+- 去 AI 痕迹（避免典型AI写作模式）
+- 五维差距分析（对标 Nature 大子刊标准）
+
+**无需外部技能包** — 所有操作指令已内置。
+
+### W3 — 文献综述 (自包含)
+
+5步完整流程，已嵌入：
+- 多源检索策略（PubMed/arXiv/Google Scholar/Scopus）
+- 逐条真实性验证（通过DOI和标题核对）
+- 主题聚类与知识图谱
+- 批判性写作（不只罗列，要评价优劣）
+- APA/Nature/IEEE 引用格式转换
+
+**无需外部技能包** — 所有操作指令已内置。
+
+### W6 — 从已有资料写论文 (自包含)
+
+5步完整流程，已嵌入：
+- 资产盘点（代码/数据/结果完整性评估）
+- 证据缺口识别与补充实验计划
+- 故事重构（实验顺序 ≠ 论文顺序）
+- 代码-方法一致性检查
+- 可重现性验证
+
+**无需外部技能包** — 所有操作指令已内置。
+
+### W8 — 审稿与返修 (简化版)
+
+4步核心流程框架。
 
 ## 目录结构
 
 ```
 xiangyu-workflow/
 ├── README.md             # 本文件
-├── DEPENDENCIES.md       # 依赖技能清单（必读）
 ├── SKILL.md              # 技能主文件
 ├── references/           # 参考文档
 │   └── protocol.md      # 状态文件schema、记忆段格式、质量闸写法
-├── workflows/            # 工作流定义
-│   ├── paper-writing.md
-│   ├── modeling-comp.md
-│   ├── literature-review.md
-│   ├── thesis-proposal.md
-│   ├── course-paper.md
-│   ├── paper-from-assets.md
-│   ├── data-figures.md
-│   ├── review-rebuttal.md
-│   └── full-pipeline.md
+├── workflows/            # 工作流定义（自包含）
+│   ├── paper-writing.md          # ✅ 完整6步，已嵌入所有逻辑
+│   ├── literature-review.md      # ✅ 完整5步，已嵌入所有逻辑
+│   ├── paper-from-assets.md      # ✅ 完整5步，已嵌入所有逻辑
+│   ├── review-rebuttal.md        # 简化版
+│   ├── modeling-comp.md          # 待重构
+│   ├── thesis-proposal.md        # 待重构
+│   ├── course-paper.md           # 待重构
+│   ├── data-figures.md           # 待重构
+│   └── full-pipeline.md          # 待重构
 └── scripts/              # 辅助脚本
     └── check_state.py   # 只读校验，输出进度摘要
 ```
@@ -110,7 +133,7 @@ xiangyu-workflow/
 每个工作流分为多个步骤，每步：
 1. 检查上游产物是否齐全
 2. 向用户展示确认卡（范围、预计时间、产出）
-3. 调用对应技能执行任务
+3. 执行对应操作（已内置具体指令）
 4. 通过质量闸验收产物
 5. 更新状态文件 `.xy/STATE.json`
 
@@ -121,10 +144,6 @@ xiangyu-workflow/
 骨架取自 Modex-MH-Agent(明珩科技)反编译得到的编排机制。
 
 ## 问题排查
-
-**Q: 提示"技能不存在"或"编排技能外"**
-
-A: 说明对应技能未安装。请查看 [DEPENDENCIES.md](DEPENDENCIES.md) 并安装所有依赖技能。
 
 **Q: 工作流卡在某一步不推进**
 
